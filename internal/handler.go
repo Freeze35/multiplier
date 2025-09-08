@@ -30,9 +30,9 @@ func (h *Handler) InitRoutes(app *fiber.App) {
 	app.Get("/get", func(c *fiber.Ctx) error {
 
 		x := c.QueryFloat("x")
-		if x < 1.0 || x > 10000.0 {
+		if x < 1.0 || x > limitSizeNumber {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "'x' must be in [1.0, 10000.0]",
+				"error": "'x' must be in [1.0, limitSizeNumber]",
 			})
 		}
 
@@ -50,19 +50,22 @@ func (h *Handler) generateMultiplier(x float64) (multiplier float64) {
 	//Incrementing client's numbers
 	h.numberIterations += 1
 
-	generatedNumber := h.generateNumber(x)
+	//Create rtp coefficient for check
+	rtpCoefficient := h.clientSum / h.numberIterations
+
+	generatedNumber := h.generateNumber(x, rtpCoefficient)
 	multiplier = generatedNumber
 
 	//Checking returning coefficient
-	log.Printf("%.1f It,%v", h.clientSum/h.numberIterations, h.numberIterations)
+	log.Printf("Cof: %.1f It: %v", rtpCoefficient, h.numberIterations)
 
 	return multiplier
 }
 
-func (h *Handler) generateNumber(x float64) float64 {
+func (h *Handler) generateNumber(x, rtpCoefficient float64) float64 {
 
 	//We check if our coefficient is more than rtp or not
-	if h.clientSum/h.numberIterations > h.rtp && h.clientSum != 0 {
+	if rtpCoefficient > h.rtp && h.clientSum != 0 {
 		newNumber := 1.0 + rand.Float64()*(x-1.0)
 		return newNumber
 	} else {
